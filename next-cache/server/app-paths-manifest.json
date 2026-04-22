@@ -1,0 +1,8 @@
+{
+  "/api/cloudinary/sign/route": "app/api/cloudinary/sign/route.js",
+  "/api/products/[productId]/route": "app/api/products/[productId]/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/products/[productId]/edit/page": "app/dashboard/products/[productId]/edit/page.js",
+  "/dashboard/products/page": "app/dashboard/products/page.js",
+  "/page": "app/page.js"
+}
