@@ -37,7 +37,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/auth/redirect");
       router.refresh();
     } catch (error) {
       setMessage("Something went wrong while signing in.");

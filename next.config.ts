@@ -6,7 +6,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  distDir: "next-cache",
   outputFileTracingRoot: __dirname
 };
 

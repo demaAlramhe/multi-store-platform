@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { LogoutButton } from "@/components/dashboard/logout-button";
+import { requireStoreOwner } from "@/lib/auth/require-store-owner";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  await requireStoreOwner();
+
   return (
     <div className="min-h-screen bg-slate-50">
       <nav className="border-b border-slate-200 bg-white">
@@ -19,6 +22,10 @@ export default function DashboardLayout({
 
             <Link className="text-slate-700" href="/dashboard/orders">
               Orders
+            </Link>
+
+            <Link className="text-slate-700" href="/dashboard/settings">
+              Settings
             </Link>
           </div>
 
