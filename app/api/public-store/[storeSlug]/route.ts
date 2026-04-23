@@ -11,11 +11,11 @@ export async function GET(
 
     const { data: store, error } = await supabase
       .from("stores")
-      .select("name, logo_url, primary_color, secondary_color")
+      .select("name, logo_url, primary_color, secondary_color, status")
       .eq("slug", storeSlug)
       .single();
 
-    if (error || !store) {
+    if (error || !store || store.status !== "active") {
       return NextResponse.json(
         { error: "Store not found." },
         { status: 404 }

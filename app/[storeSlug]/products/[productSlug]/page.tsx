@@ -19,9 +19,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
     .eq("slug", storeSlug)
     .single();
 
-  if (storeError || !store) {
-    notFound();
-  }
+    if (storeError || !store || store.status !== "active") {
+      notFound();
+    }
 
   const { data: products, error: productsError } = await supabase
     .from("products")

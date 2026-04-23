@@ -18,9 +18,9 @@ export default async function StorePage({ params }: StorePageProps) {
     .eq("slug", storeSlug)
     .single();
 
-  if (error || !store) {
-    notFound();
-  }
+    if (error || !store || store.status !== "active") {
+      notFound();
+    }
 
   return (
     <main
