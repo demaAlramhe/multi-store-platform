@@ -16,11 +16,16 @@ export default async function AdminLayout({
               Admin
             </Link>
 
-            <Link className="text-slate-700" href="/admin/users">
-  Users
+            <Link className="text-slate-700" href="/admin/orders">
+  Orders
 </Link>
+
             <Link className="text-slate-700" href="/admin/stores">
               Stores
+            </Link>
+
+            <Link className="text-slate-700" href="/admin/users">
+              Users
             </Link>
           </div>
 

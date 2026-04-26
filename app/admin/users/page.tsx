@@ -283,6 +283,12 @@ export default async function AdminUsersPage({
                       </p>
                     </div>
 
+                    {user.role === "store_owner" && !user.store_id && (
+                      <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                        Warning: This store owner is not assigned to any store yet.
+                      </div>
+                    )}
+
                     <div className="mt-4 grid gap-4 md:grid-cols-2">
                       <div>
                         <p className="mb-2 text-sm font-medium text-slate-700">
