@@ -23,7 +23,7 @@ type StoreWithOwner = {
 };
 
 type AdminStoresPageProps = {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 };
 
 function StatusBadge({ status }: { status: string | null }) {
@@ -56,29 +56,39 @@ export default async function AdminStoresPage({
 }: AdminStoresPageProps) {
   await requireSuperAdmin();
 
-  const { status } = await searchParams;
+  const { status, q } = await searchParams;
   const selectedStatus =
     status && ["active", "inactive", "archived"].includes(status)
       ? status
       : "all";
 
+  const searchQuery = q?.trim().toLowerCase() ?? "";
+
   const supabase = createAdminClient();
 
-  let storesQuery = supabase
+  const { data: allStores, error: allStoresError } = await supabase
     .from("stores")
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (selectedStatus !== "all") {
-    storesQuery = storesQuery.eq("status", selectedStatus);
-  }
+  const counters = {
+    total: allStores?.length ?? 0,
+    active: allStores?.filter((store) => store.status === "active").length ?? 0,
+    inactive:
+      allStores?.filter((store) => store.status === "inactive").length ?? 0,
+    archived:
+      allStores?.filter((store) => store.status === "archived").length ?? 0,
+  };
 
-  const { data: stores, error } = await storesQuery;
+  const statusFilteredStores =
+    selectedStatus === "all"
+      ? allStores ?? []
+      : (allStores ?? []).filter((store) => store.status === selectedStatus);
 
   let storesWithOwners: StoreWithOwner[] = [];
 
-  if (stores && stores.length > 0) {
-    const storeIds = stores.map((store) => store.id);
+  if (statusFilteredStores.length > 0) {
+    const storeIds = statusFilteredStores.map((store) => store.id);
 
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
@@ -101,7 +111,7 @@ export default async function AdminStoresPage({
         );
       }
 
-      storesWithOwners = stores.map((store) => {
+      storesWithOwners = statusFilteredStores.map((store) => {
         const ownerProfile =
           profiles.find((profile) => profile.store_id === store.id) ?? null;
 
@@ -113,7 +123,7 @@ export default async function AdminStoresPage({
         };
       });
     } else {
-      storesWithOwners = stores.map((store) => ({
+      storesWithOwners = statusFilteredStores.map((store) => ({
         ...store,
         owner_name: null,
         owner_email: null,
@@ -121,6 +131,26 @@ export default async function AdminStoresPage({
       }));
     }
   }
+
+  const finalStores = searchQuery
+    ? storesWithOwners.filter((store) => {
+        const haystack = [
+          store.name,
+          store.slug,
+          store.email,
+          store.phone,
+          store.address,
+          store.owner_name,
+          store.owner_email,
+          store.owner_role,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return haystack.includes(searchQuery);
+      })
+    : storesWithOwners;
 
   return (
     <AppShell
@@ -138,6 +168,36 @@ export default async function AdminStoresPage({
           </div>
         </Card>
 
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <div className="space-y-1">
+              <p className="text-sm text-slate-500">Total Stores</p>
+              <p className="text-3xl font-bold text-slate-900">{counters.total}</p>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="space-y-1">
+              <p className="text-sm text-slate-500">Active</p>
+              <p className="text-3xl font-bold text-green-700">{counters.active}</p>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="space-y-1">
+              <p className="text-sm text-slate-500">Inactive</p>
+              <p className="text-3xl font-bold text-red-700">{counters.inactive}</p>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="space-y-1">
+              <p className="text-sm text-slate-500">Archived</p>
+              <p className="text-3xl font-bold text-slate-700">{counters.archived}</p>
+            </div>
+          </Card>
+        </div>
+
         <Card>
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -146,15 +206,22 @@ export default async function AdminStoresPage({
               <div className="flex flex-wrap gap-2">
                 {FILTERS.map((filter) => {
                   const isActive = selectedStatus === filter.value;
+                  const hrefBase =
+                    filter.value === "all"
+                      ? "/admin/stores"
+                      : `/admin/stores?status=${filter.value}`;
+
+                  const href =
+                    searchQuery.length > 0
+                      ? `${hrefBase}${hrefBase.includes("?") ? "&" : "?"}q=${encodeURIComponent(
+                          searchQuery
+                        )}`
+                      : hrefBase;
 
                   return (
                     <Link
                       key={filter.value}
-                      href={
-                        filter.value === "all"
-                          ? "/admin/stores"
-                          : `/admin/stores?status=${filter.value}`
-                      }
+                      href={href}
                       className="rounded-lg px-4 py-2 text-sm font-medium"
                       style={{
                         backgroundColor: isActive ? "#111827" : "#ffffff",
@@ -169,18 +236,41 @@ export default async function AdminStoresPage({
               </div>
             </div>
 
-            {error ? (
+            <form action="/admin/stores" className="flex flex-wrap gap-3">
+              <input type="hidden" name="status" value={selectedStatus === "all" ? "" : selectedStatus} />
+              <input
+                type="text"
+                name="q"
+                defaultValue={searchQuery}
+                placeholder="Search by store name, slug, owner, email..."
+                className="min-w-[280px] flex-1 rounded-lg border px-3 py-2"
+              />
+              <button
+                type="submit"
+                className="rounded-lg bg-slate-900 px-4 py-2 text-white"
+              >
+                Search
+              </button>
+              <Link
+                href={selectedStatus === "all" ? "/admin/stores" : `/admin/stores?status=${selectedStatus}`}
+                className="rounded-lg border px-4 py-2 font-medium"
+              >
+                Clear
+              </Link>
+            </form>
+
+            {allStoresError ? (
               <div>
                 <p className="text-sm text-red-600">Could not load stores.</p>
                 <pre className="mt-2 text-xs text-slate-600">
-                  {JSON.stringify(error, null, 2)}
+                  {JSON.stringify(allStoresError, null, 2)}
                 </pre>
               </div>
-            ) : !storesWithOwners || storesWithOwners.length === 0 ? (
-              <p className="text-sm text-slate-600">No stores found for this filter.</p>
+            ) : !finalStores || finalStores.length === 0 ? (
+              <p className="text-sm text-slate-600">No stores found for this filter/search.</p>
             ) : (
               <div className="space-y-4">
-                {storesWithOwners.map((store) => (
+                {finalStores.map((store) => (
                   <div
                     key={store.id}
                     className="rounded-xl border border-slate-200 p-4"
